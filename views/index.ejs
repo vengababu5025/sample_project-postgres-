@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Data</title>
+    <style>
+         body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            margin-right: 10px;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        th:hover {
+            cursor: pointer;
+        }
+
+        .pagination {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination a {
+            color: #333;
+            text-decoration: none;
+            padding: 10px;
+            margin: 0 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .pagination a:hover {
+            background-color: #ddd;
+        }
+
+        .pagination a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Customer Data</h1>
+
+    <label for="search">Search:</label>
+    <input type="text" id="search" name="search" oninput="filterTable()" placeholder="Type to search">
+
+    <button onclick="sortTableByDate()">Sort by Date</button>
+
+    <table id="customerTable">
+        <thead>
+            <tr>
+                <th>SNO</th>
+                <th>Customer Name</th>
+                <th>Age</th>
+                <th>Phone</th>
+                <th>Location</th>
+                <th onclick="sortTableByDate()">Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% customers.forEach(customer => { %>
+            <tr>
+                <td><%= customer.sid %></td>
+                <td><%= customer.cname %></td>
+                <td><%= customer.age %></td>
+                <td><%= customer.phn %></td>
+                <td><%= customer.loc %></td>
+                <td><%= customer.createdat %></td>
+            </tr>
+            <% }); %>
+        </tbody>
+    </table>
+
+    <div id="pagination" class="pagination">
+        <!-- Pagination links will be added here dynamically -->
+    </div>
+<!-- ... (your existing HTML) ... -->
+
+<script>
+    const originalRows = Array.from(document.getElementById("customerTable").getElementsByTagName("tbody")[0].getElementsByTagName("tr"));
+    let sortColumnIndex = 5; // Index of the "Created At" column
+    let ascendingOrder = true;
+    let rowsPerPage = 5; // Number of rows to display per page
+    let currentPage = 1; // Current page
+
+    // Initialize the page with all functionalities
+    filterTable();
+    sortTableByDate();
+    showCurrentPage(); // Show data for the current page on page load
+
+    function filterTable() {
+        const input = document.getElementById("search");
+        const filter = input.value.toUpperCase();
+
+        if (filter === "") {
+            resetTable();
+        } else {
+            const filteredRows = Array.from(originalRows).filter((row) => {
+                const nameColumn = row.getElementsByTagName("td")[1]; // Assuming the name is in the second column
+                const nameText = nameColumn.textContent || nameColumn.innerText;
+                return nameText.toUpperCase().includes(filter);
+            });
+
+            showFilteredRows(filteredRows);
+        }
+    }
+
+    function showFilteredRows(filteredRows) {
+        const tbody = document.getElementById("customerTable").getElementsByTagName("tbody")[0];
+        tbody.innerHTML = "";
+
+        filteredRows.forEach((row) => {
+            tbody.appendChild(row.cloneNode(true));
+        });
+
+        updatePagination();
+    }
+
+    function resetTable() {
+        const tbody = document.getElementById("customerTable").getElementsByTagName("tbody")[0];
+
+        // Clear the tbody and append the original rows back
+        tbody.innerHTML = "";
+        originalRows.forEach((row) => {
+            tbody.appendChild(row.cloneNode(true));
+        });
+
+        updatePagination();
+    }
+
+    function sortTableByDate() {
+        const tbody = document.getElementById("customerTable").getElementsByTagName("tbody")[0];
+        const rows = Array.from(tbody.getElementsByTagName("tr"));
+
+        rows.sort((a, b) => {
+            const dateA = new Date(a.getElementsByTagName("td")[sortColumnIndex].textContent || a.getElementsByTagName("td")[sortColumnIndex].innerText);
+            const dateB = new Date(b.getElementsByTagName("td")[sortColumnIndex].textContent || b.getElementsByTagName("td")[sortColumnIndex].innerText);
+
+            return ascendingOrder ? dateA - dateB : dateB - dateA;
+        });
+
+        ascendingOrder = !ascendingOrder;
+
+        showSortedRows(rows);
+    }
+
+    function showSortedRows(sortedRows) {
+        const tbody = document.getElementById("customerTable").getElementsByTagName("tbody")[0];
+        tbody.innerHTML = "";
+
+        sortedRows.forEach((row) => {
+            tbody.appendChild(row.cloneNode(true));
+        });
+
+        updatePagination();
+    }
+
+    function updatePagination() {
+        const totalPages = Math.ceil(originalRows.length / rowsPerPage);
+        const paginationContainer = document.getElementById("pagination");
+
+        paginationContainer.innerHTML = "";
+
+        for (let i = 1; i <= totalPages; i++) {
+            const paginationLink = document.createElement("a");
+            paginationLink.href = "#";
+            paginationLink.textContent = i;
+            paginationLink.onclick = () => changePage(i);
+            paginationLink.className = i === currentPage ? 'active' : '';
+
+            paginationContainer.appendChild(paginationLink);
+        }
+    }
+
+    function changePage(newPage) {
+        currentPage = newPage;
+        showCurrentPage();
+    }
+
+    function showCurrentPage() {
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const rowsToDisplay = originalRows.slice(startIndex, endIndex);
+
+        showFilteredRows(rowsToDisplay);
+    }
+</script>
+
+<!-- ... (rest of your HTML) ... -->
+
+
+    <!-- ... (rest of your HTML) ... -->
+
+</body>
+
+</html>
